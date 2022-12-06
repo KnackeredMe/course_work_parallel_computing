@@ -1,41 +1,37 @@
+const {Worker, isMainThread, parentPort, workerData,} = require('worker_threads');
 const fs = require("fs");
 
 const invertedIndex = {};
-const path = "./datasets/5";
-let dirSize;
+const numberOfThreads = 2;
 
-fs.readdir(path, (err, files) => {
-    dirSize = files.length;
+const dirPath = "./datasets/4";
+let fileNames;
+
+fs.readdir(dirPath, (err, files) => {
+    fileNames = files;
+    for(let i = 0; i < numberOfThreads; i++) {
+        const leftover = fileNames.length % numberOfThreads;
+        let filesPerThread = (fileNames.length - leftover) / numberOfThreads;
+        if (i < leftover) { filesPerThread += 1 }
+        const fileNamesForThread = fileNames.slice(i * filesPerThread, (i + 1) * filesPerThread);
+        console.time(`Thread ${i + 1}`);
+        createWorker(fileNamesForThread).then(result => {console.log(result); console.timeEnd(`Thread ${i + 1}`)})
+    }
 })
 
-fs.opendir(path, (err, dir) => {
-    readDir(dir);
-});
-
-function readDir(dir) {
-    dir.read().then(value => {
-        if (!value) return;
-        fs.readFile(`${path}/${value.name}`, (err, data) => {
-            addToIndex(data.toString(), value.name);
-        })
-        readDir(dir);
+function createWorker(fileNamesForThread) {
+    return new Promise((resolve, reject) => {
+        const worker = new Worker('./worker.js', {
+            workerData: {invertedIndex: invertedIndex, dirPath: dirPath, fileNames: fileNamesForThread},
+        });
+        worker.on('message', resolve);
+        worker.on('error', reject);
+        worker.on('exit', (code) => {
+            if (code !== 0)
+                reject(new Error(`Worker stopped with exit code ${code}`));
+        });
     });
 }
-
-function addToIndex(textFromFile, fileName) {
-    const keywords = textFromFile.toLowerCase().replace(/^[a-zA-Z\s]*$/, '').split(' ');
-    keywords.forEach(word => {
-        if (invertedIndex[word]) {
-            if (invertedIndex[word].includes(fileName)) return;
-            invertedIndex[word].push(fileName);
-            return;
-        }
-        invertedIndex[word] = [fileName];
-    })
-}
-
-setTimeout(() => {console.log(invertedIndex['apple'])}, 1000);
-
 
 
 
