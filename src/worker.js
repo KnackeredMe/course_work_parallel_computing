@@ -1,7 +1,7 @@
 const fs = require("fs");
 const { workerData, parentPort, isMainThread } = require('worker_threads')
 
-const invertedIndex = workerData.invertedIndex;
+const localInvertedIndex = {};
 const dirPath = workerData.dirPath;
 const fileNames = workerData.fileNames;
 
@@ -16,14 +16,13 @@ function readDir() {
 function addToIndex(textFromFile, fileName, index) {
     const keywords = textFromFile.toLowerCase().replace(/^[a-zA-Z\s]*$/, '').split(' ');
     keywords.forEach(word => {
-        if (invertedIndex[word]) {
-            if (invertedIndex[word].includes(fileName)) return;
-            invertedIndex[word].push(fileName);
+        if (Array.isArray(localInvertedIndex[word])) {
+            localInvertedIndex[word].push(fileName);
             return;
         }
-        invertedIndex[word] = [fileName];
+        localInvertedIndex[word] = [fileName];
     })
-    if (index === fileNames.length - 1) {parentPort.postMessage(invertedIndex['relationship'])}
+    if (index === fileNames.length - 1) {parentPort.postMessage(localInvertedIndex)}
 }
 
 readDir();
