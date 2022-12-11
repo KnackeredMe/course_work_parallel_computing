@@ -2,6 +2,6 @@
   "name": "course_work_parallel_computing",
   "version": "0.0.0",
   "dependencies": {
-    "paralleljs": "^1.1.0"
+    "ws": "^8.11.0"
   }
 }
