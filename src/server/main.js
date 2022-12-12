@@ -57,7 +57,6 @@ class Server {
 
     mergeIndexes() {
         this.localIndexes.forEach(localIndex => {
-            console.log(localIndex.table);
             localIndex.table.forEach((localItem, index) => {
                 if (Array.isArray(this.invertedIndex.table[index])) {
                     this.invertedIndex.table[index].forEach(globalItem => {
