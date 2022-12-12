@@ -1,8 +1,10 @@
 const {workerData, parentPort} = require('worker_threads')
+const {Hashtable} = require("./hashtable");
 
-const invertedIndex = workerData.invertedIndex;
 const word = workerData.word;
-const result = invertedIndex[word].toString();
+const invertedIndex = new Hashtable;
+invertedIndex.table = workerData.table;
+const result = invertedIndex.get(word).toString();
 
 parentPort.postMessage(result);
 

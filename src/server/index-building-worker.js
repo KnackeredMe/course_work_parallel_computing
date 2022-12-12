@@ -1,7 +1,8 @@
 const fs = require("fs");
 const {workerData, parentPort} = require('worker_threads')
+const {Hashtable} = require("./hashtable");
 
-const localInvertedIndex = {};
+const localInvertedIndex = new Hashtable();
 const dirPath = workerData.dirPath;
 const fileNames = workerData.fileNames;
 
@@ -16,11 +17,7 @@ function readDir() {
 function addToIndex(textFromFile, fileName, index) {
     const keywords = textFromFile.toLowerCase().replace(/^[a-zA-Z\s]*$/, '').split(' ');
     keywords.forEach(word => {
-        if (!Array.isArray(localInvertedIndex[word])) {
-            localInvertedIndex[word] = [fileName];
-        } else if (!localInvertedIndex[word].includes(fileName)) {
-            localInvertedIndex[word].push(fileName);
-        }
+        localInvertedIndex.set(word, fileName);
     })
     if (index === fileNames.length - 1) {parentPort.postMessage(localInvertedIndex)}
 }

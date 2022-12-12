@@ -1,9 +1,10 @@
 const {Worker} = require('worker_threads');
 const fs = require("fs");
 const webSocket = require('ws');
+const {Hashtable} = require("./hashtable");
 
 class Server {
-    invertedIndex = {};
+    invertedIndex = new Hashtable;
     localIndexes = [];
     numberOfThreads = 5;
     workersFinished = 0;
@@ -56,13 +57,18 @@ class Server {
 
     mergeIndexes() {
         this.localIndexes.forEach(localIndex => {
-            for(const [key] of Object.entries(localIndex)) {
-                if (Array.isArray(this.invertedIndex[key])) {
-                    this.invertedIndex[key].push(...localIndex[key]);
+            console.log(localIndex.table);
+            localIndex.table.forEach((localItem, index) => {
+                if (Array.isArray(this.invertedIndex.table[index])) {
+                    this.invertedIndex.table[index].forEach(globalItem => {
+                        if (globalItem.key === localItem.key) {
+                            globalItem.value.push(localItem.value);
+                        }
+                    })
                     return;
                 }
-                this.invertedIndex[key] = localIndex[key];
-            }
+                this.invertedIndex.table[index] = localIndex.table[index];
+            })
         })
     }
 
@@ -94,7 +100,7 @@ class Server {
             client.on('message', (word) => {
                 console.log(`Client ${clientId} requested word: ${word.toString()}`);
                 const workerPath = './server/index-searching-worker.js';
-                const workerOptions = {workerData: {invertedIndex: this.invertedIndex, word: word.toString()}}
+                const workerOptions = {workerData: {table: this.invertedIndex.table, word: word.toString()}}
                 this.createWorker(workerPath, workerOptions).then(result => {
                     // console.log(`Result: ${result}`);
                     client.send(result);
