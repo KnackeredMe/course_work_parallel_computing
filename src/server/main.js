@@ -1,5 +1,6 @@
 const {Worker} = require('worker_threads');
 const fs = require("fs");
+const readline = require("readline");
 const webSocket = require('ws');
 const {Hashtable} = require("./hashtable");
 
@@ -10,13 +11,24 @@ class Server {
     workersFinished = 0;
     clientsConnected = 0;
     dirPath = "./datasets/unsup";
+    rl = readline.createInterface({
+        input: process.stdin,
+        output: process.stdout,
+    });
 
     constructor() {
         fs.readdir('./', (err, files) => {
             if (files.includes('inverted-index.txt')) {
                 this.getIndexFromFile();
             } else {
-                this.buildIndex();
+                this.rl.question('Enter number of threads(workers) to build inverted index(5 by default): ', (res) => {
+                    const number = Number(res);
+                    if (number && Number.isInteger(number)) {
+                        this.numberOfThreads = number;
+                    }
+                    console.log(`Number of threads(workers): ${this.numberOfThreads}`);
+                    this.buildIndex();
+                })
             }
         })
     }

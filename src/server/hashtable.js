@@ -1,5 +1,5 @@
 class Hashtable {
-    length = 100003;
+    length = 49999;
     table = Array(this.length);
 
     hashFunction(word) {

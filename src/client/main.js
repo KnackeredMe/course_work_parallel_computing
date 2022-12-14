@@ -24,6 +24,10 @@ class Client {
                 case 'exit':
                     this.client.close()
                     console.log('Disconnected from the server');
+                    break;
+                default:
+                    console.log('Invalid command.');
+                    this.showMenu();
             }
         })
     }
