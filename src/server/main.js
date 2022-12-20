@@ -115,8 +115,8 @@ class Server {
             client.on('message', (request) => {
                 const word = request.toString();
                 console.log(`Client ${clientId} requested word: ${word}`);
-                const result = this.invertedIndex.get(word).toString();
-                client.send(result);
+                const result = this.invertedIndex.get(word);
+                client.send(result ? result.toString() : result);
             })
             client.on('close', () => {
                 this.clientsConnected -= 1;
