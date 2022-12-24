@@ -10,6 +10,10 @@ class Server {
     numberOfThreads = 5;
     workersFinished = 0;
     clientsConnected = 0;
+    testIterations = 4;
+    testCurrentIteration = 1;
+    testCurrentThread = 0;
+    testThreadSequence = [1, 2, 4, 8, 10, 25, 50, 100, 200, 300];
     dirPath = "./datasets/unsup";
     rl = readline.createInterface({
         input: process.stdin,
@@ -18,7 +22,13 @@ class Server {
 
     constructor() {
         fs.readdir('./', (err, files) => {
-            this.rl.question(`Enter number of threads(workers) to build inverted index ${files.includes('inverted-index.txt') ? 'or press "Enter" to read pre-saved index from file' : '(5 by default)'}: `, (res) => {
+            this.rl.question(`Enter number of threads(workers) to build inverted index ${files.includes('inverted-index.txt') ? 'or press "enter" key to read pre-saved index from file' : '(5 by default)'}. Type "test" to run test sequence: `, (res) => {
+                if (res === 'test') {
+                    console.log(`Running test sequence. Number of iterations: ${this.testIterations}`)
+                    this.numberOfThreads = this.testThreadSequence[this.testCurrentThread];
+                    this.buildIndex(true);
+                    return;
+                }
                 const number = Number(res);
                 if (number && Number.isInteger(number)) {
                     this.numberOfThreads = number;
@@ -34,7 +44,7 @@ class Server {
         })
     }
 
-    buildIndex() {
+    buildIndex(isTest) {
         console.log(`Number of threads(workers): ${this.numberOfThreads}`);
         fs.readdir(this.dirPath, (err, files) => {
             const fileNames = files;
@@ -48,14 +58,19 @@ class Server {
                 acc += filesPerCurrentThread;
                 const workerPath = './server/index-building-worker.js';
                 const workerOptions = {workerData: {dirPath: this.dirPath, fileNames: fileNamesForThread}}
-                console.time(`Thread ${i + 1}`);
+                if (!isTest) console.time(`Thread ${i + 1}`);
                 this.createWorker(workerPath, workerOptions).then(result => {
                     this.workersFinished += 1;
-                    console.timeEnd(`Thread ${i + 1}`);
+                    if (!isTest) console.timeEnd(`Thread ${i + 1}`);
                     this.localIndexes.push(result)
                     if (this.workersFinished === this.numberOfThreads) {
                         this.mergeIndexes();
+                        console.log(`Inverted index size: ${this.invertedIndex.size}`);
                         console.timeEnd('Total');
+                        if (isTest) {
+                            this.nextTest()
+                            return;
+                        }
                         this.saveIndex();
                         this.startServer();
                     }
@@ -72,19 +87,24 @@ class Server {
     }
 
     mergeIndexes() {
+        this.optimizeIndexLength();
         this.localIndexes.forEach(localIndex => {
-            localIndex.table.forEach((localItem, index) => {
-                if (Array.isArray(this.invertedIndex.table[index])) {
-                    this.invertedIndex.table[index].forEach(globalItem => {
-                        if (globalItem.key === localItem.key) {
-                            globalItem.value.push(localItem.value);
-                        }
+            localIndex.table.forEach((localEntry) => {
+                if (Array.isArray(localEntry)) {
+                    localEntry.forEach(localItem => {
+                        this.invertedIndex.set(localItem.key, localItem.value, true);
                     })
-                    return;
                 }
-                this.invertedIndex.table[index] = localIndex.table[index];
             })
         })
+    }
+
+    optimizeIndexLength() {
+        let length = 0;
+        this.localIndexes.forEach(localIndex => {
+            length += localIndex.size;
+        })
+        this.invertedIndex.table = new Array(length);
     }
 
     saveIndex() {
@@ -123,6 +143,25 @@ class Server {
                 console.log(`Client ${clientId} disconnected. Current number of clients: ${this.clientsConnected}`);
             })
         })
+    }
+
+    reinitializeIndex() {
+        this.invertedIndex = new Hashtable();
+        this.localIndexes = [];
+        this.workersFinished = 0;
+    }
+
+    nextTest() {
+        if (this.testCurrentIteration < this.testIterations) {
+            this.testCurrentIteration += 1;
+        } else {
+            this.testCurrentIteration = 1;
+            this.testCurrentThread += 1;
+        }
+        this.numberOfThreads = this.testThreadSequence[this.testCurrentThread];
+        if (!this.numberOfThreads) return;
+        this.reinitializeIndex();
+        this.buildIndex(true);
     }
 }
 

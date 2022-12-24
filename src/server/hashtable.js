@@ -1,6 +1,9 @@
 class Hashtable {
-    length = 49999;
-    table = Array(this.length);
+    initialLength = 49999;
+    table = new Array(this.initialLength);
+    size = 0;
+    loadFactor = 0.75;
+
 
     hashFunction(word) {
         const chars = word.split('');
@@ -14,23 +17,30 @@ class Hashtable {
 
     }
 
-    set(key, value) {
+    set(key, value, isMerge) {
+        if (this.size/this.table.length > this.loadFactor) this.resize();
         const hash = this.hashFunction(key);
         if (!Array.isArray(this.table[hash])) {
-            this.table[hash] = [{key: key, value: [value]}];
+            this.size += 1;
+            this.table[hash] = [{key: key, value: isMerge ? value : [value]}];
             return;
         }
         for (let i = 0; i < this.table[hash].length; i++) {
-            if (this.table[hash][i].key === key && !this.table[hash][i].value.includes(value)) {
-                this.table[hash][i].value.push(value);
-                return;
-            }
             if (this.table[hash][i].key === key) {
+                if (isMerge) {
+                    this.table[hash][i].value.push(...value);
+                } else {
+                    if (!this.table[hash][i].value.includes(value)) {
+                        this.table[hash][i].value.push(value);
+                    }
+                }
                 return;
             }
         }
         this.table[hash].push({key: key, value: [value]});
     }
+
+
 
     get(key) {
         const hash = this.hashFunction(key);
@@ -44,6 +54,18 @@ class Hashtable {
         }
         return value;
 
+    }
+
+    resize() {
+        const prevTable = JSON.parse(JSON.stringify(this.table));
+        this.table = new Array(prevTable.length * 2);
+        prevTable.forEach(entry => {
+            if (Array.isArray(entry)) {
+                entry.forEach(item => {
+                    this.set(item.key, item.value);
+                })
+            }
+        })
     }
 
 
