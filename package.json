@@ -1,7 +1,12 @@
 {
   "name": "course_work_parallel_computing",
   "version": "0.0.0",
+  "scripts": {
+    "server": "node src/server/main.js",
+    "client": "node src/client/main.js"
+  },
   "dependencies": {
+    "concurrently": "^7.6.0",
     "ws": "^8.11.0"
   }
 }

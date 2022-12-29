@@ -36,11 +36,7 @@ class Client {
         this.rl.question("Enter a word to find a files that include it: ", (word) => {
             this.client.send(word);
             this.client.onmessage = (message) => {
-                if (message.data.toString()) {
-                    console.log(`Result: ${message.data}`);
-                } else {
-                    console.log('No results');
-                }
+                console.log(message.data);
                 this.showMenu();
             };
         });
