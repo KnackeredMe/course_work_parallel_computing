@@ -17,7 +17,7 @@ function readDir() {
 
 function addToIndex(textFromFile, fileName) {
     fileCounter += 1;
-    const keywords = textFromFile.toLowerCase().replace(/^[a-zA-Z\s]*$/, '').split(' ');
+    const keywords = textFromFile.toLowerCase().replace(/[\W_]+/g, ' ').split(' ');
     keywords.forEach(word => {
         localInvertedIndex.set(word, fileName);
     })
